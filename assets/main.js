@@ -1,30 +1,62 @@
 $(function() {
-  var client = ZAFClient.init();
+  let client = ZAFClient.init();
   client.invoke('resize', { width: '100%', height: '200px' });
+  client.get('ticket.requester.id').then(function(data) {
+    let user_id = data['ticket.requester.id'];
+    requestUserInfo(client, user_id);
+  });
 });
 
-function showInfo() {
-  var requester_data = {
-    'name': 'Jane Doe',
-    'tags': ['tag1', 'tag2'],
-    'created_at': 'November 5, 1942',
-    'last_login_at': 'April 5, 2018'
+function showInfo(data) {
+  let requester_data = {
+    'name': data.user.name,
+    'tags': data.user.tags,
+    'created_at': formatDate(data.user.created_at),
+    'last_login_at': formatDate(data.user.last_login_at)
   };
 
-  var source = $("#requester-template").html();
-  var template = Handlebars.compile(source);
-  var html = template(requester_data);
+  let source = $("#requester-template").html();
+  let template = Handlebars.compile(source);
+  let html = template(requester_data);
   $("#content").html(html);
 }
 
-function showError() {
-  var error_data = {
-    'status': 404,
-    'statusText': 'Not found'
+function showError(response) {
+  let error_data = {
+    'status': response.status,
+    'statusText': response.statusText
   };
 
-  var source = $("#error-template").html();
-  var template = Handlebars.compile(source);
-  var html = template(error_data);
+  let source = $("#error-template").html();
+  let template = Handlebars.compile(source);
+  let html = template(error_data);
   $("#content").html(html);
+}
+
+function requestUserInfo(client, id) {
+  let settings = {
+    url: `/api/v2/users/${id}.json`,
+    type: 'GET',
+    dataType: 'json'
+  };
+
+  client.request(settings).then(
+    function(data) {
+      showInfo(data);
+    },
+    function(response) {
+      showError(response);
+    }
+  );
+}
+
+function formatDate(date) {
+  let cdate = new Date(date);
+  let options = {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  };
+  date = cdate.toLocaleDateString("en-us", options);
+  return date;
 }
